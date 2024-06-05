@@ -1,10 +1,11 @@
-const { invoke } = window.__TAURI__.tauri;
+const {invoke} = window.__TAURI__.tauri;
 
 async function run() {
-  await invoke("run");
+    document.getElementById("run").disabled = true;
+    await invoke("run");
+    document.getElementById("run").disabled = false;
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  const runButton = document.querySelector(".run");
-  runButton.onclick = run;
+    document.getElementById("run").onclick = run;
 });

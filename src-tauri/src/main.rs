@@ -13,7 +13,7 @@ use tokio::time::{sleep, Duration};
 
 #[tauri::command]
 async fn run() {
-    let hotkeys = vec!["cmd+c".to_string(), "cmd+v".to_string(), "cmd+opt+esc".to_string()];
+    let hotkeys = vec!["cmd+c".to_string(), "cmd+v".to_string(), "cmd+q".to_string(), "cmd+opt+esc".to_string()];
     let hotkeys_blocker_executor = Arc::new(RwLock::new(HotkeysBlockerExecutor::default()));
     let hotkeys_blocker_executor_ref = hotkeys_blocker_executor.clone();
     tokio::spawn(async move {
