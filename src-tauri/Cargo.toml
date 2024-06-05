@@ -18,6 +18,7 @@ core-foundation = "0.9.4"
 core-graphics = "0.23.2"
 anyhow = "1.0.86"
 lazy_static = "1.4.0"
+tokio = { version = "1.38.0", features = ["full"] }
 
 
 [features]

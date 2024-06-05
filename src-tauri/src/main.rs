@@ -2,30 +2,29 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
+use std::sync::Arc;
 use anyhow::Error;
 use core_foundation::array::CFIndex;
 use core_foundation::runloop::{CFRunLoop, kCFRunLoopCommonModes};
 use core_graphics::event::{CGEvent, CGEventFlags, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType, EventField};
 use lazy_static::lazy_static;
+use tokio::sync::RwLock;
+use tokio::time::{sleep, Duration};
 
 #[tauri::command]
-fn run() {
+async fn run() {
+    let hotkeys = vec!["cmd+c".to_string(), "cmd+v".to_string(), "cmd+opt+esc".to_string()];
     let hotkeys_blocker_executor = Arc::new(RwLock::new(HotkeysBlockerExecutor::default()));
     let hotkeys_blocker_executor_ref = hotkeys_blocker_executor.clone();
-    thread::spawn(move || {
-        sleep(Duration::from_secs(10));
-        hotkeys_blocker_executor_ref.read().unwrap().stop();
+    tokio::spawn(async move {
+        hotkeys_blocker_executor_ref
+            .read()
+            .await
+            .execute(hotkeys)
+            .unwrap();
     });
-    let hotkeys = vec!["cmd+c".to_string(), "cmd+v".to_string(), "cmd+opt+esc".to_string()];
-    hotkeys_blocker_executor
-        .read()
-        .unwrap()
-        .execute(hotkeys)
-        .unwrap();
+    sleep(Duration::from_secs(10)).await;
+    hotkeys_blocker_executor.read().await.stop();
 }
 
 fn main() {
