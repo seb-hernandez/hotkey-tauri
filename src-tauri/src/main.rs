@@ -23,9 +23,9 @@ async fn run() {
         "cmd+opt+esc".to_string(),
     ];
     let hotkeys_blocker_executor = Arc::new(RwLock::new(HotkeysBlockerExecutor::default()));
-    let hotkeys_blocker_executor_ref = hotkeys_blocker_executor.clone();
+    let c_hotkeys_blocker_executor = hotkeys_blocker_executor.clone();
     tokio::spawn(async move {
-        hotkeys_blocker_executor_ref
+        c_hotkeys_blocker_executor
             .read()
             .await
             .execute(hotkeys)
