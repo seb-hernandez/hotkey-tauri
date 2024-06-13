@@ -7,8 +7,7 @@ async function run() {
 }
 
 async function acc() {
-    let acc = await invoke("acc");
-    document.getElementById("acc-p").innerText = acc;
+    await invoke("acc");
 }
 
 window.addEventListener("DOMContentLoaded", () => {

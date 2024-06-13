@@ -38,31 +38,34 @@ async fn run() {
 }
 
 #[tauri::command]
-async fn acc() -> bool {
-    Command::new("open")
+async fn acc() {
+    let _ = Command::new("open")
         .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-        .output()
-        .unwrap();
+        .output();
 
     let (acc_sender, mut acc_receiver) = broadcast::channel::<bool>(1);
+    let (_stop_sender, mut stop_receiver) = broadcast::channel::<()>(1);
+
     tokio::spawn(async move {
         let mut interval_timer = interval(Duration::from_secs(1));
         loop {
             tokio::select! {
                 _ = interval_timer.tick() => unsafe {
                     let acc = AXIsProcessTrusted();
-                    if acc {
-                        let _ = acc_sender.send(true);
-                       break;
-                    }
+                    let _ = acc_sender.send(acc);
                 },
+                _ = stop_receiver.recv() => {
+                    break;
+                }
             }
         }
     });
 
-    let received_bool = acc_receiver.recv().await.unwrap();
-    eprintln!("received_bool = {:?}", received_bool);
-    received_bool
+    loop {
+        if let Ok(acc) = acc_receiver.recv().await {
+            println!("acc = {:?}", acc);
+        }
+    }
 }
 
 fn main() {
