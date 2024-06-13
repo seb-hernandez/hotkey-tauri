@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use accessibility_sys::AXIsProcessTrusted;
 use anyhow::{Error, Result};
 use core_foundation::array::CFIndex;
 use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
@@ -10,9 +11,10 @@ use core_graphics::event::{
 };
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::process::Command;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration};
+use tokio::sync::{broadcast, RwLock};
+use tokio::time::{interval, sleep, Duration};
 
 #[tauri::command]
 async fn run() {
@@ -35,9 +37,37 @@ async fn run() {
     hotkeys_blocker_executor.read().await.stop();
 }
 
+#[tauri::command]
+async fn acc() -> bool {
+    Command::new("open")
+        .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        .output()
+        .unwrap();
+
+    let (acc_sender, mut acc_receiver) = broadcast::channel::<bool>(1);
+    tokio::spawn(async move {
+        let mut interval_timer = interval(Duration::from_secs(1));
+        loop {
+            tokio::select! {
+                _ = interval_timer.tick() => unsafe {
+                    let acc = AXIsProcessTrusted();
+                    if acc {
+                        let _ = acc_sender.send(true);
+                       break;
+                    }
+                },
+            }
+        }
+    });
+
+    let received_bool = acc_receiver.recv().await.unwrap();
+    eprintln!("received_bool = {:?}", received_bool);
+    received_bool
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![run])
+        .invoke_handler(tauri::generate_handler![run, acc])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -182,20 +212,4 @@ pub type EventKeys = Vec<(i64, CGEventFlags)>;
 pub enum EventKey {
     Int(i64),
     CGEventFlags(CGEventFlags),
-}
-
-impl EventKey {
-    fn as_int(&self) -> Option<i64> {
-        match self {
-            EventKey::Int(i) => Some(*i),
-            _ => None,
-        }
-    }
-
-    fn as_cg_event_flags(&self) -> CGEventFlags {
-        match self {
-            EventKey::CGEventFlags(flag) => *flag,
-            _ => CGEventFlags::empty(),
-        }
-    }
 }
